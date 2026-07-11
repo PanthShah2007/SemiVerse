@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Silicon Architecture | By Panth Shah</title>
+    
+    <!-- External Fonts and Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- External Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
+
+    <style>
+        /* ==========================================================================
+           1. CSS VARIABLES & THEME SETUP
+           ========================================================================== */
+        :root {
+            /* Dark Theme Colors (Default) */
+            --bg-base: #020617;
+            --bg-surface: #0f172a;
+            --bg-grid: rgba(255, 255, 255, 0.03);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --card-bg: rgba(30, 41, 59, 0.6);
+            --card-hover: rgba(30, 41, 59, 0.9);
+            --accent-primary: #0ea5e9;
+            --accent-secondary: #3b82f6;
+            --accent-glow: rgba(14, 165, 233, 0.6);
+            --border-light: rgba(255, 255, 255, 0.08);
+            --border-heavy: rgba(255, 255, 255, 0.15);
+            --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.3);
+            --shadow-hard: 0 8px 32px rgba(0, 0, 0, 0.6);
+            
+            /* Typography */
+            --font-sans: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            
+            /* Sizing */
+            --nav-height: 80px;
+            --container-width: 1400px;
+            --radius-sm: 8px;
+            --radius-md: 16px;
+            --radius-lg: 24px;
+        }
+
+        [data-theme="light"] {
+            --bg-base: #f8fafc;
+            --bg-surface: #f1f5f9;
+            --bg-grid: rgba(0, 0, 0, 0.04);
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --card-bg: rgba(255, 255, 255, 0.7);
+            --card-hover: rgba(255, 255, 255, 0.95);
+            --accent-primary: #2563eb;
+            --accent-secondary: #1d4ed8;
+            --accent-glow: rgba(37, 99, 235, 0.4);
+            --border-light: rgba(0, 0, 0, 0.08);
+            --border-heavy: rgba(0, 0, 0, 0.15);
+            --shadow-soft: 0 4px 20px rgba(148, 163, 184, 0.2);
+            --shadow-hard: 0 8px 32px rgba(148, 163, 184, 0.3);
+        }
+
+        /* ==========================================================================
+           2. GLOBAL RESET & BASE STYLES
+           ========================================================================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-base);
+            background-image: 
+                linear-gradient(var(--bg-grid) 1px, transparent 1px),
+                linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+            background-size: 50px 50px;
+            background-position: center center;
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            transition: background-color 0.4s ease, color 0.4s ease;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 10px; }
+        ::-webkit-scrollbar-track { background: var(--bg-base); }
+        ::-webkit-scrollbar-thumb { background: var(--border-heavy); border-radius: 5px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-primary); }
+
+        /* Typography Essentials */
+        h1, h2, h3, h4, h5, h6 { font-weight: 800; line-height: 1.2; }
+        p { line-height: 1.7; margin-bottom: 1rem; }
+        a { text-decoration: none; color: var(--accent-primary); transition: all 0.2s; }
+        a:hover { color: var(--accent-secondary); text-shadow: 0 0 8px var(--accent-glow); }
+        
+        .highlight { color: var(--accent-primary); font-weight: 600; }
+        .mono { font-family: var(--font-mono); }
+
+        /* ==========================================================================
+           3. NAVIGATION BAR
+           ========================================================================== */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: var(--nav-height);
+            padding: 0 5%;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border-heavy);
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 1000;
+            box-shadow: var(--shadow-soft);
+        }
+
+        [data-theme="light"] nav { background: rgba(248, 250, 252, 0.8); }
+
+        .logo {
+            font-size: 1.6rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, var(--text-main) 0%, var(--accent-primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo i {
+            color: var(--accent-primary);
+            text-shadow: 0 0 15px var(--accent-glow);
+            -webkit-text-fill-color: initial;
+        }
+
+        .nav-center {
+            display: flex;
+            gap: 1.5rem;
+            background: var(--card-bg);
+            padding: 0.5rem;
+            border-radius: 50px;
+            border: 1px solid var(--border-light);
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-family: var(--font-sans);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 0.6rem 1.5rem;
+            border-radius: 50px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-btn:hover { color: var(--text-main); }
+        
+        .nav-btn.active {
+            background: var(--accent-primary);
+            color: #ffffff;
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .nav-right { display: flex; gap: 1.5rem; align-items: center; }
+
+        .social-icon {
+            color: var(--text-muted);
+            font-size: 1.4rem;
+            transition: all 0.3s ease;
+        }
+        
+        .social-icon:hover {
+            color: var(--accent-primary);
+            transform: translateY(-3px);
+            text-shadow: 0 5px 15px var(--accent-glow);
+        }
+
+        #theme-toggle {
+            background: none; border: none;
+            color: var(--text-main);
+            font-size: 1.4rem; cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+        #theme-toggle:hover { transform: rotate(45deg); color: var(--accent-primary); }
+
+        /* ==========================================================================
+           4. PAGE STRUCTURE & ANIMATIONS
+           ========================================================================== */
+        main {
+            margin-top: var(--nav-height);
+            padding: 4rem 5%;
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+        }
+
+        .page-container {
+            width: 100%;
+            max-width: var(--container-width);
+            display: none;
+            animation: fadeInScale 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .page-container.active { display: block; }
+
+        @keyframes fadeInScale {
+            0% { opacity: 0; transform: translateY(30px) scale(0.98); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* Common Header Styles */
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+            position: relative;
+        }
+
+        .section-title {
+            font-size: 4rem;
+            letter-spacing: -2px;
+            margin-bottom: 1rem;
+            background: linear-gradient(to right, var(--text-main), var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .section-subtitle {
+            font-family: var(--font-mono);
+            color: var(--accent-primary);
+            font-size: 1.1rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+        }
+
+        /* ==========================================================================
+           5. CARDS & CONTAINERS
+           ========================================================================== */
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-lg);
+            padding: 2.5rem;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: var(--shadow-soft);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent-primary), transparent);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--border-heavy);
+            box-shadow: var(--shadow-hard);
+            background: var(--card-hover);
+        }
+
+        .glass-card:hover::before { opacity: 1; }
+
+        .card-icon {
+            font-size: 2.5rem;
+            color: var(--accent-primary);
+            margin-bottom: 1.5rem;
+            display: inline-block;
+            padding: 1rem;
+            background: rgba(14, 165, 233, 0.1);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-light);
+        }
+
+        /* ==========================================================================
+           6. HOME PAGE SPECIFICS
+           ========================================================================== */
+        .hero-section {
+            text-align: center;
+            padding: 6rem 0;
+            position: relative;
+        }
+
+        .hero-section::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+            z-index: -1;
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .dev-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.8rem 2rem;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border-heavy);
+            border-radius: 50px;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            margin-bottom: 3rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .dev-badge span { color: var(--accent-primary); font-weight: bold; }
+        .dev-badge .divider { width: 1px; height: 15px; background: var(--border-heavy); }
+
+        /* ==========================================================================
+           7. 3D SIMULATOR & TERMINAL LAYOUT
+           ========================================================================== */
+        .engine-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            height: 75vh;
+            min-height: 600px;
+            margin-bottom: 4rem;
+        }
+
+        /* Canvas Area */
+        .canvas-container {
+            background: #000;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-heavy);
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 80px rgba(0,0,0,0.8), 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        #three-canvas { width: 100%; height: 100%; outline: none; }
+
+        .canvas-overlay {
+            position: absolute;
+            top: 20px; left: 20px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .overlay-title {
+            font-family: var(--font-mono);
+            color: #0ea5e9;
+            font-size: 1.2rem;
+            font-weight: 800;
+            text-shadow: 0 0 10px rgba(14, 165, 233, 0.8);
+            margin-bottom: 5px;
+        }
+        
+        .overlay-stats {
+            font-family: var(--font-mono);
+            color: #fff;
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+
+        .canvas-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 1rem;
+            background: rgba(15, 23, 42, 0.8);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            border: 1px solid rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .ctrl-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .ctrl-btn:hover { background: rgba(255,255,255,0.1); color: var(--accent-primary); }
+
+        /* Terminal Console */
+        .terminal-panel {
+            background: rgba(5, 10, 20, 0.95);
+            border: 1px solid var(--border-heavy);
+            border-radius: var(--radius-lg);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: var(--shadow-hard);
+        }
+
+        .terminal-header {
+            background: rgba(255,255,255,0.05);
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .terminal-title {
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            display: flex; gap: 10px; align-items: center;
+        }
+        
+        .terminal-dots span {
+            display: inline-block;
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            margin-left: 5px;
+        }
+        .dot-r { background: #ef4444; }
+        .dot-y { background: #f59e0b; }
+        .dot-g { background: #10b981; }
+
+        .terminal-body {
+            padding: 1.5rem;
+            overflow-y: auto;
+            flex-grow: 1;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        .log-line { margin-bottom: 0.8rem; opacity: 0; animation: fadeInLog 0.3s forwards; }
+        .log-time { color: #64748b; margin-right: 10px; }
+        .log-info { color: #38bdf8; }
+        .log-warn { color: #facc15; }
+        .log-sys { color: #a78bfa; font-weight: bold; }
+        .log-math { color: #f8fafc; background: rgba(255,255,255,0.05); padding: 2px 5px; border-radius: 4px; display: inline-block; margin-top: 4px; }
+
+        @keyframes fadeInLog { to { opacity: 1; } }
+
+        /* ==========================================================================
+           8. DEEP THEORY & EQUATION STYLES
+           ========================================================================== */
+        .theory-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 3rem;
+        }
+
+        .theory-article {
+            background: var(--card-bg);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-lg);
+            padding: 3rem;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .theory-article h2 {
+            font-size: 2.2rem;
+            color: var(--accent-primary);
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-heavy);
+        }
+
+        .theory-article h3 {
+            font-size: 1.5rem;
+            margin: 2rem 0 1rem 0;
+            color: var(--text-main);
+        }
+
+        .equation-box {
+            background: rgba(0,0,0,0.4);
+            border-left: 4px solid var(--accent-primary);
+            padding: 1.5rem;
+            border-radius: 0 var(--radius-md) var(--radius-md) 0;
+            margin: 2rem 0;
+            overflow-x: auto;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.5);
+        }
+        
+        [data-theme="light"] .equation-box { background: rgba(0,0,0,0.05); }
+
+        .equation-title {
+            font-family: var(--font-mono);
+            color: var(--accent-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* List Styling inside Theory */
+        .theory-list { list-style: none; margin-left: 1rem; }
+        .theory-list li { margin-bottom: 1rem; position: relative; padding-left: 1.5rem; }
+        .theory-list li::before {
+            content: '>';
+            position: absolute;
+            left: 0; top: 0;
+            color: var(--accent-primary);
+            font-family: var(--font-mono);
+            font-weight: bold;
+        }
+
+        /* ==========================================================================
+           9. RESPONSIVE DESIGN MEDIA QUERIES
+           ========================================================================== */
+        @media (max-width: 1200px) {
+            .engine-layout { grid-template-columns: 1fr; height: auto; }
+            .canvas-container { height: 60vh; }
+            .terminal-panel { height: 40vh; }
+        }
+
+        @media (max-width: 768px) {
+            .section-title { font-size: 2.5rem; }
+            .nav-center { display: none; /* Mobile menu toggle would go here */ }
+            .theory-article { padding: 1.5rem; }
+        }
+    </style>
+</head>
+<body data-theme="dark">
+
+    <!-- NAVIGATION BAR -->
+    <nav>
+        <div class="logo">
+            <i class="fa-solid fa-microchip"></i>
+            Silica Core
+        </div>
+        
+        <div class="nav-center">
+            <button class="nav-btn active" onclick="navigate('home', this)">Overview</button>
+            <button class="nav-btn" onclick="navigate('engine', this)">3D Physics Engine</button>
+            <button class="nav-btn" onclick="navigate('theory', this)">Advanced Theory</button>
+            <button class="nav-btn" onclick="navigate('fabrication', this)">Fabrication & Logic</button>
+        </div>
+
+        <div class="nav-right">
+            <a href="https://github.com/PanthShah2007" target="_blank" class="social-icon" title="GitHub"><i class="fa-brands fa-github"></i></a>
+            <a href="https://www.linkedin.com/in/panth-shah-445144389" target="_blank" class="social-icon" title="LinkedIn"><i class="fa-brands fa-linkedin"></i></a>
+            <a href="mailto:panthshah2007@gmail.com" class="social-icon" title="Email"><i class="fa-solid fa-envelope"></i></a>
+            <button id="theme-toggle" title="Toggle Theme"><i class="fa-solid fa-sun"></i></button>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT AREA -->
+    <main>
+        
+        <!-- ========================================================
+             PAGE 1: OVERVIEW / HOME
+             ======================================================== -->
+        <section id="home" class="page-container active">
+            <div class="hero-section">
+                <div class="dev-badge">
+                    <span>Engineered By Panth Shah</span>
+                    <div class="divider"></div>
+                    <i class="fa-solid fa-graduation-cap"></i> ECE Portfolio Project
+                </div>
+                
+                <h1 class="section-title">The Absolute Physics<br>Of Computation</h1>
+                <p class="section-subtitle">A deep dive into Solid-State Electronics</p>
+                
+                <p style="max-width: 800px; margin: 2rem auto; font-size: 1.2rem; color: var(--text-muted);">
+                    This platform bridges the gap between abstract mathematics and physical reality. 
+                    Explore the multivariable calculus of carrier transport, interact with a dynamically 
+                    rendered Face-Centered Cubic lattice, and dissect the Boolean logic gates that power the modern world.
+                </p>
+            </div>
+
+            <div class="bento-grid">
+                <!-- Card 1 -->
+                <div class="glass-card">
+                    <i class="fa-solid fa-cube card-icon"></i>
+                    <h2>Crystal Geometry</h2>
+                    <p>Interactive 3D simulation of the Diamond Cubic structure. Analyze Miller indices, primitive basis vectors, and the Wigner-Seitz cell in reciprocal space.</p>
+                    <a href="#" onclick="navigate('engine', document.querySelectorAll('.nav-btn')[1]); return false;" class="mono">Initialize Engine <i class="fa-solid fa-arrow-right"></i></a>
+                </div>
+                
+                <!-- Card 2 -->
+                <div class="glass-card">
+                    <i class="fa-solid fa-wave-square card-icon"></i>
+                    <h2>Quantum Statistics</h2>
+                    <p>Mathematical modeling of electron probability distribution using Fermi-Dirac statistics, Density of States integrals, and Schrödinger's wave equation.</p>
+                    <a href="#" onclick="navigate('theory', document.querySelectorAll('.nav-btn')[2]); return false;" class="mono">Read Theory <i class="fa-solid fa-arrow-right"></i></a>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="glass-card">
+                    <i class="fa-solid fa-network-wired card-icon"></i>
+                    <h2>CMOS & Logic Design</h2>
+                    <p>From PN Junctions to Nodal Analysis and complex Boolean Multiplexers. Understanding how physical semiconductor physics translates into digital computation.</p>
+                    <a href="#" onclick="navigate('fabrication', document.querySelectorAll('.nav-btn')[3]); return false;" class="mono">Explore Logic <i class="fa-solid fa-arrow-right"></i></a>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================================
+             PAGE 2: 3D PHYSICS ENGINE & TELEMETRY
+             ======================================================== -->
+        <section id="engine" class="page-container">
+            <div class="section-header">
+                <h1 class="section-title">Silicon Lattice Engine</h1>
+                <p class="section-subtitle">Real-time WebGL rendering with PBR Materials</p>
+            </div>
+
+            <div class="engine-layout">
+                <!-- Left: Canvas Area -->
+                <div class="canvas-container" id="canvas-wrapper">
+                    <div class="canvas-overlay">
+                        <div class="overlay-title">SI_CRYSTAL_SIM v2.4</div>
+                        <div class="overlay-stats">
+                            Lattice: Diamond Cubic (FCC + basis)<br>
+                            Lattice Constant (a): 5.43 Å<br>
+                            Material: Pure Intrinsic Silicon
+                        </div>
+                    </div>
+                    
+                    <!-- Three.js Canvas mounts here -->
+                    <div id="webgl-canvas" style="width: 100%; height: 100%;"></div>
+
+                    <!-- Interactive Controls -->
+                    <div class="canvas-controls">
+                        <button class="ctrl-btn" title="Toggle Auto-Spin" id="btn-spin"><i class="fa-solid fa-rotate"></i></button>
+                        <button class="ctrl-btn" title="Reset Camera" id="btn-reset"><i class="fa-solid fa-video"></i></button>
+                        <button class="ctrl-btn" title="Toggle Wireframe" id="btn-wire"><i class="fa-solid fa-border-all"></i></button>
+                    </div>
+                </div>
+
+                <!-- Right: Telemetry Terminal -->
+                <div class="terminal-panel">
+                    <div class="terminal-header">
+                        <div class="terminal-title"><i class="fa-solid fa-terminal"></i> PHYSICS_KERNEL_LOG</div>
+                        <div class="terminal-dots">
+                            <span class="dot-r"></span>
+                            <span class="dot-y"></span>
+                            <span class="dot-g"></span>
+                        </div>
+                    </div>
+                    <div class="terminal-body" id="terminal-output">
+                        <!-- Logs generated by JS -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="glass-card">
+                <h3>About this Rendering</h3>
+                <p>
+                    The 3D visualization above is not a static model. It is procedurally generated using nested multivariable loops in JavaScript. 
+                    Silicon forms a **Diamond Cubic** structure, which is essentially two Face-Centered Cubic (FCC) lattices interpenetrating one another, offset along the body diagonal by \(\frac{1}{4}\) of the lattice parameter \(a\).
+                </p>
+                <p>
+                    Visually, the atoms are rendered using Physical Based Rendering (PBR) materials, with high metalness, low roughness, and an emissive cyan glow to simulate a high-energy structural map. The lighting utilizes a combination of ambient light, directional rays, and localized point lights to highlight the tetrahedral bonding geometry (bond angle ~109.5°).
+                </p>
+            </div>
+        </section>
+
+        <!-- ========================================================
+             PAGE 3: ADVANCED THEORY & MATHEMATICS
+             ======================================================== -->
+        <section id="theory" class="page-container">
+            <div class="section-header">
+                <h1 class="section-title">Theoretical Framework</h1>
+                <p class="section-subtitle">Quantum Mechanics & Multivariable Analysis</p>
+            </div>
+
+            <div class="theory-grid">
+                
+                <!-- Article 1: Fermi Dirac -->
+                <article class="theory-article">
+                    <h2>1. Carrier Statistics & Probability</h2>
+                    <p>
+                        To determine how many electrons are available for conduction, we must bridge statistical mechanics with quantum physics. 
+                        Electrons are Fermions, meaning no two electrons can occupy the exact same quantum state (Pauli Exclusion Principle). 
+                        Their distribution across available energy levels is dictated by the **Fermi-Dirac probability function**.
+                    </p>
+                    
+                    <div class="equation-box">
+                        <div class="equation-title">Fermi-Dirac Distribution</div>
+                        $$ f(E) = \frac{1}{1 + e^{\frac{E - E_F}{kT}}} $$
+                    </div>
+                    
+                    <p>Where:</p>
+                    <ul class="theory-list">
+                        <li>\( f(E) \) is the probability that a state at energy \(E\) is occupied.</li>
+                        <li>\( E_F \) is the Fermi Energy level (the chemical potential).</li>
+                        <li>\( k \) is the Boltzmann constant (\(8.617 \times 10^{-5} \text{ eV/K}\)).</li>
+                        <li>\( T \) is absolute temperature in Kelvin.</li>
+                    </ul>
+                    
+                    <p>
+                        To find the total electron concentration \(n\) in the conduction band, we must evaluate an infinite series integral, 
+                        multiplying this probability function by the Density of States function \(g_c(E)\) from the conduction band edge \(E_c\) to infinity.
+                    </p>
+                    
+                    <div class="equation-box">
+                        <div class="equation-title">Carrier Concentration Integral</div>
+                        $$ n_0 = \int_{E_c}^{\infty} g_c(E) f(E) \,dE = N_c e^{-\frac{E_c - E_F}{kT}} $$
+                    </div>
+                </article>
+
+                <!-- Article 2: Transport & Maxwell -->
+                <article class="theory-article">
+                    <h2>2. Multivariable Transport Equations</h2>
+                    <p>
+                        Once carriers are generated, their movement constitutes current. This is governed by two physical mechanisms: **Drift** (due to an electric field) and **Diffusion** (due to a concentration gradient).
+                        Analyzing this requires applying multivariable vector calculus, specifically the divergence operator (\(\nabla \cdot\)), derived from Maxwell's Equations and the continuity principle.
+                    </p>
+                    
+                    <div class="equation-box">
+                        <div class="equation-title">Total Current Density Vector</div>
+                        $$ \vec{J}_{total} = \vec{J}_{drift} + \vec{J}_{diffusion} $$
+                        $$ \vec{J}_n = q \mu_n n \vec{\mathcal{E}} + q D_n \nabla n $$
+                        $$ \vec{J}_p = q \mu_p p \vec{\mathcal{E}} - q D_p \nabla p $$
+                    </div>
+                    
+                    <p>
+                        Here, \(\nabla n = \left(\frac{\partial n}{\partial x}\hat{i} + \frac{\partial n}{\partial y}\hat{j} + \frac{\partial n}{\partial z}\hat{k}\right)\) represents the spatial gradient of electron concentration. 
+                        In complex 3D Nodal analysis of micro-devices, ensuring that the divergence of the current density equals the time rate of change of charge density (\(\nabla \cdot \vec{J} = -\frac{\partial \rho}{\partial t}\)) is critical for circuit stability.
+                    </p>
+                </article>
+
+                <!-- Article 3: Poisson's Equation -->
+                <article class="theory-article">
+                    <h2>3. Poisson's Equation in PN Junctions</h2>
+                    <p>
+                        When a P-type and N-type material are joined, a depletion region forms. The fixed ionized dopant atoms create a localized charge density \(\rho(x)\). 
+                        To find the built-in electric field \(\vec{\mathcal{E}}\) and the electrostatic potential \(V(x)\), we integrate Poisson's equation, which relates the Laplacian of the potential to the charge density.
+                    </p>
+
+                    <div class="equation-box">
+                        <div class="equation-title">1D Poisson's Equation</div>
+                        $$ \frac{d^2 V}{dx^2} = -\frac{\rho(x)}{\epsilon_s} = -\frac{q(N_D - N_A + p - n)}{\epsilon_s} $$
+                    </div>
+                    <p>
+                        Solving this second-order differential equation yields the parabolic voltage profile across the junction, fundamentally explaining why a diode acts as a one-way valve for alternating current (AC) power systems.
+                    </p>
+                </article>
+
+            </div>
+        </section>
+
+        <!-- ========================================================
+             PAGE 4: FABRICATION & DIGITAL LOGIC
+             ======================================================== -->
+        <section id="fabrication" class="page-container">
+            <div class="section-header">
+                <h1 class="section-title">From Sand to Logic</h1>
+                <p class="section-subtitle">Fabrication & Boolean Architecture</p>
+            </div>
+
+            <div class="bento-grid">
+                <div class="glass-card" style="grid-column: 1 / -1;">
+                    <h2>The CMOS Revolution</h2>
+                    <p>
+                        Complementary Metal-Oxide-Semiconductor (CMOS) logic is the backbone of modern computation. By pairing PMOS (pull-up networks) and NMOS (pull-down networks) transistors, we create logic gates that consume near-zero static power. 
+                        When the input voltage is high (Logic 1), the NMOS turns on, pulling the output to ground (Logic 0). When input is low, the PMOS turns on, pulling the output to \(V_{DD}\).
+                    </p>
+                </div>
+
+                <div class="glass-card">
+                    <i class="fa-solid fa-microscope card-icon"></i>
+                    <h3>Photolithography</h3>
+                    <p>
+                        The process of transferring geometric shapes on a mask to the surface of a silicon wafer. Modern foundries use Extreme Ultraviolet (EUV) light at 13.5nm wavelength. 
+                        According to the Rayleigh criterion (\(CD = k_1 \frac{\lambda}{NA}\)), smaller wavelengths allow us to etch features just a few atoms wide.
+                    </p>
+                </div>
+
+                <div class="glass-card">
+                    <i class="fa-solid fa-code-branch card-icon"></i>
+                    <h3>Boolean Multiplexers</h3>
+                    <p>
+                        A multiplexer (MUX) routes one of several input signals to a single output based on select lines. 
+                        For a 2-to-1 MUX, the Boolean expression is: <br><br>
+                        <span class="mono highlight">Y = (A • S') + (B • S)</span><br><br>
+                        In physical layout, this requires meticulously arranged transmission gates (parallel NMOS and PMOS) to pass the signal without voltage degradation.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="glass-card">
+                <h2>System-Level Integration: AC/DC & Power</h2>
+                <p>
+                    Ultimately, microprocessors don't exist in a vacuum. They interface with macroscopic electrical systems. 
+                    Understanding Thevenin and Norton equivalent circuits is crucial for impedance matching between a high-speed CMOS chip and external components. 
+                    Furthermore, the DC power supplies that feed these chips rely on heavy-duty semiconductor rectifiers transforming 3-phase AC power from the grid into stable, noise-free DC rails. 
+                    Every concept in Electronics and Communication Engineering—from probability statistics to heavy power generation—is interconnected.
+                </p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ==========================================================================
+         JAVASCRIPT & LOGIC ENGINE
+         ========================================================================== -->
+    <script>
+        // ----------------------------------------------------------------------
+        // 1. Navigation & Theme Logic
+        // ----------------------------------------------------------------------
+        function navigate(pageId, btnElement) {
+            // Hide all pages
+            document.querySelectorAll('.page-container').forEach(page => {
+                page.classList.remove('active');
+            });
+            // Show target page
+            document.getElementById(pageId).classList.add('active');
+            
+            // Update button states
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            btnElement.classList.add('active');
+
+            // Specific hook for Three.js resizing if rendering engine tab is opened
+            if(pageId === 'engine' && renderer) {
+                setTimeout(() => {
+                    resizeCanvas();
+                }, 100);
+            }
+        }
+
+        const themeToggle = document.getElementById('theme-toggle');
+        const icon = themeToggle.querySelector('i');
+        const body = document.body;
+
+        themeToggle.addEventListener('click', () => {
+            const isDark = body.getAttribute('data-theme') === 'dark';
+            body.setAttribute('data-theme', isDark ? 'light' : 'dark');
+            icon.className = isDark ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+        });
+
+        // ----------------------------------------------------------------------
+        // 2. Terminal Telemetry Simulation
+        // ----------------------------------------------------------------------
+        const terminalLogs = [
+            { type: 'sys', text: "INITIALIZING KERNEL... BOOT SEQ: 0x4A29" },
+            { type: 'info', text: "Loading quantum mechanics module... OK" },
+            { type: 'info', text: "Loading multivariable transport solvers... OK" },
+            { type: 'sys', text: "> GENERATING DIAMOND CUBIC LATTICE PARAMETERS" },
+            { type: 'math', text: "Basis vectors: a1=a/2(0,1,1), a2=a/2(1,0,1), a3=a/2(1,1,0)" },
+            { type: 'info', text: "Lattice constant set to 5.43 Å" },
+            { type: 'info', text: "Calculating atomic positions for 3x3x3 unit cells..." },
+            { type: 'sys', text: "> SOLVING SCHRODINGER EQUATION FOR PERIODIC POTENTIAL" },
+            { type: 'math', text: "Applying Bloch's Theorem: ψ(r) = e^(ik·r)u(r)" },
+            { type: 'info', text: "Energy bandgap calculated: Eg = 1.12 eV (Indirect)" },
+            { type: 'warn', text: "WARNING: High temperature detected (T = 300K)." },
+            { type: 'sys', text: "> CALCULATING FERMI-DIRAC DISTRIBUTION" },
+            { type: 'math', text: "Intrinsic concentration ni = 1.0e10 cm^-3" },
+            { type: 'info', text: "Dopant concentration: ND = 0, NA = 0 (Intrinsic material)" },
+            { type: 'sys', text: "> EXECUTING DRIFT-DIFFUSION CONTINUITY CHECK" },
+            { type: 'math', text: "∇ · J = -∂ρ/∂t -> Equilibrium state confirmed." },
+            { type: 'info', text: "System ready. Rendering WebGL Output..." }
+        ];
+
+        let logIndex = 0;
+        const terminalOut = document.getElementById('terminal-output');
+
+        function printNextLog() {
+            if(logIndex < terminalLogs.length) {
+                const log = terminalLogs[logIndex];
+                const line = document.createElement('div');
+                line.className = 'log-line';
+                
+                // Add timestamp
+                const now = new Date();
+                const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}.${now.getMilliseconds().toString().padStart(3,'0')}`;
+                
+                let content = `<span class="log-time">[${timeStr}]</span> `;
+                content += `<span class="log-${log.type}">${log.text}</span>`;
+                
+                line.innerHTML = content;
+                terminalOut.appendChild(line);
+                terminalOut.scrollTop = terminalOut.scrollHeight; // Auto-scroll
+                
+                logIndex++;
+                
+                // Randomize typing speed for realism
+                const delay = Math.random() * 400 + 100;
+                setTimeout(printNextLog, delay);
+            }
+        }
+        
+        // Start terminal sequence after a short delay
+        setTimeout(printNextLog, 1500);
+
+
+        // ----------------------------------------------------------------------
+        // 3. Three.js: Diamond Cubic Silicon Lattice
+        // ----------------------------------------------------------------------
+        let scene, camera, renderer;
+        let latticeGroup;
+        let autoSpin = true;
+        let atoms = [];
+        let bonds = [];
+
+        function initThreeJS() {
+            const container = document.getElementById('webgl-canvas');
+            
+            // 1. Scene Setup
+            scene = new THREE.Scene();
+            
+            // 2. Camera Setup
+            camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(4, 3, 6);
+            camera.lookAt(0, 0, 0);
+
+            // 3. Renderer Setup
+            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            // Tone mapping for bright PBR materials
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.2;
+            container.appendChild(renderer.domElement);
+
+            // 4. Lighting (Crucial for the "bright and good" requirement)
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+            dirLight.position.set(10, 20, 10);
+            scene.add(dirLight);
+
+            // Colored point lights to give it that futuristic tech glow
+            const blueLight = new THREE.PointLight(0x0ea5e9, 5, 20);
+            blueLight.position.set(0, 5, 0);
+            scene.add(blueLight);
+
+            const cyanLight = new THREE.PointLight(0x00ffff, 3, 15);
+            cyanLight.position.set(-5, -2, -5);
+            scene.add(cyanLight);
+
+            const purpleLight = new THREE.PointLight(0x8b5cf6, 4, 15);
+            purpleLight.position.set(5, -2, 5);
+            scene.add(purpleLight);
+
+            // 5. Materials
+            // High metalness, low roughness, with emissive glow
+            const atomMaterial = new THREE.MeshPhysicalMaterial({
+                color: 0x0f172a,
+                metalness: 0.9,
+                roughness: 0.1,
+                clearcoat: 1.0,
+                clearcoatRoughness: 0.1,
+                emissive: 0x0ea5e9,
+                emissiveIntensity: 0.4
+            });
+
+            const wireMaterial = new THREE.MeshBasicMaterial({
+                color: 0x0ea5e9,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.3
+            });
+
+            const bondMaterial = new THREE.MeshPhysicalMaterial({
+                color: 0xffffff,
+                metalness: 0.5,
+                roughness: 0.2,
+                transparent: true,
+                opacity: 0.4,
+                emissive: 0xffffff,
+                emissiveIntensity: 0.2
+            });
+
+            // 6. Geometry Generation (Diamond Cubic Lattice)
+            latticeGroup = new THREE.Group();
+            scene.add(latticeGroup);
+
+            const atomGeo = new THREE.SphereGeometry(0.25, 32, 32);
+            const bondGeo = new THREE.CylinderGeometry(0.04, 0.04, 1, 8);
+            
+            // Lattice parameters
+            const cells = 2; // Create a 2x2x2 grid of unit cells
+            const a = 2.0;   // Scaling factor for the unit cell
+            
+            // Basis vectors for diamond structure (relative to cell origin)
+            const basis = [
+                [0, 0, 0],
+                [0, 0.5, 0.5],
+                [0.5, 0, 0.5],
+                [0.5, 0.5, 0],
+                [0.25, 0.25, 0.25],
+                [0.25, 0.75, 0.75],
+                [0.75, 0.25, 0.75],
+                [0.75, 0.75, 0.25]
+            ];
+
+            const positions = [];
+
+            // Nested loops to generate the lattice points
+            for(let x=0; x<cells; x++) {
+                for(let y=0; y<cells; y++) {
+                    for(let z=0; z<cells; z++) {
+                        // Offset to center the whole structure at (0,0,0)
+                        const offsetX = (x - cells/2 + 0.5) * a;
+                        const offsetY = (y - cells/2 + 0.5) * a;
+                        const offsetZ = (z - cells/2 + 0.5) * a;
+
+                        basis.forEach(b => {
+                            const px = offsetX + b[0]*a;
+                            const py = offsetY + b[1]*a;
+                            const pz = offsetZ + b[2]*a;
+                            
+                            // Prevent duplicate atoms at cell boundaries
+                            const isDuplicate = positions.some(p => 
+                                Math.abs(p.x - px) < 0.01 && 
+                                Math.abs(p.y - py) < 0.01 && 
+                                Math.abs(p.z - pz) < 0.01
+                            );
+
+                            if(!isDuplicate) {
+                                const vec = new THREE.Vector3(px, py, pz);
+                                positions.push(vec);
+                                
+                                const atom = new THREE.Mesh(atomGeo, atomMaterial);
+                                atom.position.copy(vec);
+                                latticeGroup.add(atom);
+                                atoms.push(atom);
+                            }
+                        });
+                    }
+                }
+            }
+
+            // Generate Bonds based on distance
+            // In diamond cubic, nearest neighbor distance is sqrt(3)/4 * a = 0.433 * a
+            const bondDistance = (Math.sqrt(3)/4) * a;
+            const tolerance = 0.1; // tolerance for floating point math
+
+            for(let i=0; i<positions.length; i++) {
+                for(let j=i+1; j<positions.length; j++) {
+                    const dist = positions[i].distanceTo(positions[j]);
+                    if(Math.abs(dist - bondDistance) < tolerance) {
+                        // Create bond cylinder
+                        const bond = new THREE.Mesh(bondGeo, bondMaterial);
+                        
+                        const p1 = positions[i];
+                        const p2 = positions[j];
+                        
+                        // Position cylinder exactly halfway between the two atoms
+                        const midPoint = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
+                        bond.position.copy(midPoint);
+                        
+                        // Scale cylinder to exact distance
+                        bond.scale.set(1, dist, 1);
+                        
+                        // Orient cylinder to point from p1 to p2
+                        bond.quaternion.setFromUnitVectors(
+                            new THREE.Vector3(0, 1, 0), 
+                            new THREE.Vector3().subVectors(p2, p1).normalize()
+                        );
+                        
+                        latticeGroup.add(bond);
+                        bonds.push(bond);
+                    }
+                }
+            }
+
+            // 7. Animation Loop
+            function animate() {
+                requestAnimationFrame(animate);
+                
+                if(autoSpin) {
+                    latticeGroup.rotation.y += 0.002;
+                    latticeGroup.rotation.x += 0.001;
+                }
+                
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            // 8. Event Listeners for Controls
+            document.getElementById('btn-spin').addEventListener('click', () => {
+                autoSpin = !autoSpin;
+                document.getElementById('btn-spin').style.color = autoSpin ? '#fff' : 'var(--text-muted)';
+            });
+
+            document.getElementById('btn-reset').addEventListener('click', () => {
+                camera.position.set(4, 3, 6);
+                camera.lookAt(0, 0, 0);
+                latticeGroup.rotation.set(0, 0, 0);
+            });
+
+            let isWireframe = false;
+            document.getElementById('btn-wire').addEventListener('click', () => {
+                isWireframe = !isWireframe;
+                atoms.forEach(atom => {
+                    atom.material = isWireframe ? wireMaterial : atomMaterial;
+                });
+                bonds.forEach(bond => {
+                    bond.visible = !isWireframe;
+                });
+                document.getElementById('btn-wire').style.color = isWireframe ? 'var(--accent-primary)' : '#fff';
+            });
+        }
+
+        function resizeCanvas() {
+            const container = document.getElementById('webgl-canvas');
+            if (camera && renderer && container) {
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            }
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // Initialize Three.js on DOM load
+        document.addEventListener("DOMContentLoaded", () => {
+            initThreeJS();
+        });
+
+    </script>
+</body>
+</html>
